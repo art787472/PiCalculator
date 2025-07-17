@@ -10,8 +10,11 @@
         <StackPanel Orientation="Horizontal">
             <Label Content="SampleSize"></Label>
             <TextBox Name="sampleSizeTxt"></TextBox>
-            <Button Content="Add" Click="CalculatorPiClick"></Button>
-            
+            <Button Content="Add" Click="CalculatorPiClick" IsEnabled="{Binding IsStart}"></Button>
+            <!-- HW: 研究 Cancellection Token 該如何使用?-->
+
+            <Button Content="{Binding buttonText}" Click="Button_Click" ></Button>
+
         </StackPanel>
 
 
@@ -22,6 +25,8 @@
                         <Label Content="{Binding SampleSize}" />
                         <Label Content="{Binding Time}" />
                         <Label Content="{Binding Value}" />
+                        <Label Content="{Binding Status}" />
+                        <Button Content="取消" Click="CancelClick" Tag="{Binding TokenSource}" IsEnabled="{Binding IsCancelled}" Visibility="{Binding BtnVisibility}"/>
                     </StackPanel>
 
                 </DataTemplate>

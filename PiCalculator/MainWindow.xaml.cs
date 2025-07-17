@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,29 +24,26 @@ namespace PiCalculator
         private IPiCalcPresenter _presenter;
         public IPiCalcPresenter Presenter { get => _presenter; set => _presenter = value; }
         public PiViewModel viewModel { get; set; } = new PiViewModel();
-        private List<long> sizes = new List<long>();
         private Timer timer;
+        
         public MainWindow(IMVPFactory factory)
         {
             InitializeComponent();
             sampleSizeTxt.Width = 50;
             DataContext = viewModel;
 
-           _presenter = factory.Create<IPiCalcView, IPiCalcPresenter>(this);
+            _presenter = factory.Create<IPiCalcView, IPiCalcPresenter>(this);
 
             timer = new Timer(TimerCallback, null, 0, 1000);
+            _presenter.StartMission();
         }
 
         private void TimerCallback(object state)
         {
-
-
-
-
-            Debug.WriteLine("Hello");
+            _presenter.FetchCompletedMission();
         }
 
-        private  void CalculatorPiClick(object sender, RoutedEventArgs e)
+        private void CalculatorPiClick(object sender, RoutedEventArgs e)
         {
             if (!long.TryParse(sampleSizeTxt.Text, out long size))
             {
@@ -52,12 +51,16 @@ namespace PiCalculator
                 return;
             }
             sampleSizeTxt.Text = string.Empty;
-            if (sizes.Contains(size))
+
+            var model = _presenter.SendMissionRequest(size);
+
+            if (model == null)
             {
+                MessageBox.Show("該筆資料已經被處理過了!");
                 return;
             }
-
-            this.Presenter.Calculate(size);
+            viewModel.Add(model);
+            //this.Presenter.Calculate(size);
 
 
 
@@ -84,13 +87,40 @@ namespace PiCalculator
 
             //});
         }
-        public void CalculateFinish(PiMissionModel model)
+    
+
+        public void UpdateDataView(List<PiMissionModel> datas)
         {
             this.Dispatcher.Invoke(() =>
             {
-                viewModel.Add(model);
+                foreach (var item in datas)
+                {
+                    viewModel.Add(item);
+                }
+
             });
-           
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            viewModel.IsStart = !viewModel.IsStart;
+            
+            if (!viewModel.IsStart)
+            {
+                _presenter.StopMission();
+            }
+            else
+            {
+                _presenter.StartMission();
+            }
+        }
+
+        private void CancelClick(object sender, RoutedEventArgs e)
+        {
+            var btn = (Button)sender;
+            var tokenSource = (CancellationTokenSource)btn.Tag;
+            
+            tokenSource.Cancel();
         }
     }
 
